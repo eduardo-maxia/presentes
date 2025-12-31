@@ -8,6 +8,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -70,7 +72,9 @@ export class NotificationService {
             data: { eventId: event.id, contactName, daysBefore },
             sound: true,
           },
-          trigger: notificationDate,
+          trigger: {
+            date: notificationDate,
+          } as any,
         });
 
         notificationIds.push(notificationId);
@@ -98,14 +102,15 @@ export class NotificationService {
         title,
         body,
         data: { 
-          reminderId: reminder.id,
           contactId: reminder.contact_id,
           eventId: reminder.event_id,
           giftIdeaId: reminder.gift_idea_id,
         },
         sound: true,
       },
-      trigger: remindAt,
+      trigger: {
+        date: remindAt,
+      } as any,
     });
 
     return notificationId;

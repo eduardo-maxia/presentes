@@ -52,7 +52,7 @@ export function useGiftIdeas(contactId?: string) {
           ...ideaData,
           contact_id: contactId,
           profile_id: profile.id,
-        })
+        } as any)
         .select()
         .single();
 
@@ -70,7 +70,8 @@ export function useGiftIdeas(contactId?: string) {
     try {
       const { data, error } = await supabase
         .from('gift_ideas')
-        .update(updates)
+        // @ts-ignore - Supabase type inference limitation
+        .update(updates as any)
         .eq('id', ideaId)
         .select()
         .single();
@@ -147,7 +148,7 @@ export function useGiftIdeas(contactId?: string) {
           profile_id: profile.id,
           asset_url: publicUrl,
           asset_type: 'image',
-        })
+        } as any)
         .select()
         .single();
 

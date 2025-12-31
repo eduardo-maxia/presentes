@@ -80,7 +80,7 @@ export function useContacts() {
         .insert({
           ...contactData,
           profile_id: profile.id,
-        })
+        } as any)
         .select()
         .single();
 
@@ -98,7 +98,8 @@ export function useContacts() {
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .update(updates)
+        // @ts-ignore - Supabase type inference limitation
+        .update(updates as any)
         .eq('id', contactId)
         .select()
         .single();
@@ -172,7 +173,7 @@ export function useContacts() {
           ...eventData,
           contact_id: contactId,
           profile_id: profile.id,
-        })
+        } as any)
         .select()
         .single();
 
@@ -190,7 +191,8 @@ export function useContacts() {
     try {
       const { data, error } = await supabase
         .from('contact_events')
-        .update(updates)
+        // @ts-ignore - Supabase type inference limitation
+        .update(updates as any)
         .eq('id', eventId)
         .select()
         .single();

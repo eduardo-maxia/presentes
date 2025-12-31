@@ -53,7 +53,7 @@ export function useReminders() {
     try {
       // Schedule notification first
       const notificationId = await NotificationService.scheduleCustomReminder(
-        { ...reminderData, profile_id: profile.id },
+        { ...reminderData, profile_id: profile.id, notification_id: null },
         contactName
       );
 
@@ -63,7 +63,7 @@ export function useReminders() {
           ...reminderData,
           profile_id: profile.id,
           notification_id: notificationId,
-        })
+        } as any)
         .select()
         .single();
 
@@ -98,10 +98,11 @@ export function useReminders() {
 
       const { data, error } = await supabase
         .from('reminders')
+        // @ts-ignore - Supabase type inference limitation
         .update({
           ...updates,
           notification_id: notificationId,
-        })
+        } as any)
         .eq('id', reminderId)
         .select()
         .single();

@@ -33,6 +33,15 @@ export interface Database {
         Update: Partial<Omit<Reminder, 'id' | 'created_at'>>;
       };
     };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
   };
 }
 
