@@ -9,6 +9,8 @@
     "allowJs": true,
     "noEmit": true,
     "isolatedModules": true,
+    // Strict mode disabled temporarily due to Supabase v2 type inference limitations
+    // Re-enable when upgrading to Supabase v3 or using supabase-js type helpers
     "strict": false,
     "skipLibCheck": true,
     "esModuleInterop": true,

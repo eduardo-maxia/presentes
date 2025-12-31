@@ -282,6 +282,13 @@ These features are implemented in hooks/services but need UI:
 - ✅ Commented complex logic
 - ✅ Consistent naming conventions
 
+### Type Safety Notes
+- TypeScript strict mode is disabled due to Supabase v2 type inference limitations
+- Type assertions (`@ts-ignore`) are used sparingly and documented
+- All application logic is properly typed
+- Database types are fully defined in `types/database.ts`
+- When Supabase v3 is released or type helpers improve, strict mode can be re-enabled
+
 ## 🔒 Security
 
 - ✅ RLS policies on all tables
