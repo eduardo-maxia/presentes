@@ -51,7 +51,7 @@ export default function ProfileScreen() {
       <View className="p-6 items-center border-b" style={{ borderColor: colors.border }}>
         <View
           style={{ backgroundColor: colors.primary }}
-          className="w-24 h-24 rounded-full items-center justify-center mb-3"
+          className="w-24 h-24 rounded-3xl items-center justify-center mb-3"
         >
           <Text className="text-white text-4xl font-bold">
             {profile?.display_name?.charAt(0).toUpperCase() || '?'}
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
         {isAnonymous && (
           <View
             style={{ backgroundColor: colors.accent }}
-            className="px-3 py-1 rounded-full mt-2"
+            className="px-3 py-1 rounded-xl mt-2"
           >
             <Text style={{ color: colors.foreground }} className="text-sm font-medium">
               Modo Anônimo
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
 
       {/* Anonymous User Section */}
       {isAnonymous && (
-        <View className="p-4 m-4 rounded-lg" style={{ backgroundColor: colors.backgroundSecondary }}>
+        <View className="p-4 m-4 rounded-2xl" style={{ backgroundColor: colors.backgroundSecondary }}>
           <View className="flex-row items-center mb-2">
             <Ionicons name="lock-closed" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
             <Text style={{ color: colors.foreground }} className="text-lg font-semibold">
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: colors.primary }}
-            className="py-3 rounded-lg items-center"
+            className="py-3 rounded-xl items-center"
             activeOpacity={0.8}
             onPress={() => setShowLoginModal(true)}
           >
@@ -104,42 +104,62 @@ export default function ProfileScreen() {
           APARÊNCIA
         </Text>
 
-        {/* Theme Toggle */}
-        <View
-          className="p-4 rounded-lg mb-2"
+        {/* Light Theme */}
+        <TouchableOpacity
+          className="p-4 rounded-xl mb-2"
           style={{ backgroundColor: colors.backgroundSecondary }}
+          onPress={() => setTheme('light')}
+          activeOpacity={0.7}
         >
           <View className="flex-row justify-between items-center">
-            <View>
-              <Text style={{ color: colors.foreground }} className="text-base font-medium">
-                Tema Escuro
-              </Text>
-              <Text style={{ color: colors.foregroundSecondary }} className="text-sm">
-                {themeMode === 'system' ? 'Automático (Sistema)' : themeMode === 'dark' ? 'Ativado' : 'Desativado'}
+            <View className="flex-row items-center">
+              <Ionicons name="sunny" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.foreground }} className="text-base">
+                Tema Claro
               </Text>
             </View>
-            <Switch
-              value={isDark}
-              onValueChange={(value) => setTheme(value ? 'dark' : 'light')}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={isDark ? colors.accent : '#f4f3f4'}
-            />
+            {themeMode === 'light' && (
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+            )}
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Auto Theme */}
+        {/* Dark Theme */}
         <TouchableOpacity
-          className="p-4 rounded-lg mb-2"
+          className="p-4 rounded-xl mb-2"
+          style={{ backgroundColor: colors.backgroundSecondary }}
+          onPress={() => setTheme('dark')}
+          activeOpacity={0.7}
+        >
+          <View className="flex-row justify-between items-center">
+            <View className="flex-row items-center">
+              <Ionicons name="moon" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.foreground }} className="text-base">
+                Tema Escuro
+              </Text>
+            </View>
+            {themeMode === 'dark' && (
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* System Theme */}
+        <TouchableOpacity
+          className="p-4 rounded-xl mb-2"
           style={{ backgroundColor: colors.backgroundSecondary }}
           onPress={() => setTheme('system')}
           activeOpacity={0.7}
         >
           <View className="flex-row justify-between items-center">
-            <Text style={{ color: colors.foreground }} className="text-base">
-              Usar tema do sistema
-            </Text>
+            <View className="flex-row items-center">
+              <Ionicons name="phone-portrait" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.foreground }} className="text-base">
+                Automático (Sistema)
+              </Text>
+            </View>
             {themeMode === 'system' && (
-              <Text style={{ color: colors.primary }}>✓</Text>
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
             )}
           </View>
         </TouchableOpacity>
@@ -155,7 +175,7 @@ export default function ProfileScreen() {
         </Text>
 
         <View
-          className="p-4 rounded-lg mb-2"
+          className="p-4 rounded-xl mb-2"
           style={{ backgroundColor: colors.backgroundSecondary }}
         >
           <View className="flex-row justify-between items-center">
@@ -171,7 +191,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 onPress={handleRequestNotifications}
                 style={{ backgroundColor: colors.primary }}
-                className="px-4 py-2 rounded-lg"
+                className="px-4 py-2 rounded-xl"
               >
                 <Text className="text-white font-medium">Ativar</Text>
               </TouchableOpacity>
@@ -191,7 +211,7 @@ export default function ProfileScreen() {
           </Text>
 
           <TouchableOpacity
-            className="p-4 rounded-lg"
+            className="p-4 rounded-xl"
             style={{ backgroundColor: colors.backgroundSecondary }}
             onPress={handleSignOut}
             activeOpacity={0.7}
@@ -213,7 +233,7 @@ export default function ProfileScreen() {
         </Text>
 
         <View
-          className="p-4 rounded-lg"
+          className="p-4 rounded-xl"
           style={{ backgroundColor: colors.backgroundSecondary }}
         >
           <Text style={{ color: colors.foreground }} className="text-base mb-1">
@@ -246,7 +266,7 @@ export default function ProfileScreen() {
             
             <TouchableOpacity
               style={{ backgroundColor: colors.primary }}
-              className="py-4 rounded-lg items-center mb-3"
+              className="py-4 rounded-xl items-center mb-3"
               onPress={handleLogin}
               activeOpacity={0.8}
             >
@@ -254,7 +274,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="py-4 rounded-lg items-center"
+              className="py-4 rounded-xl items-center"
               onPress={() => setShowLoginModal(false)}
               activeOpacity={0.8}
             >

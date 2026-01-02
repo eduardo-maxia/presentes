@@ -83,7 +83,7 @@ export default function NewContactScreen() {
               color: colors.foreground,
               borderColor: colors.border,
             }}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-xl border"
             placeholder="Nome completo"
             placeholderTextColor={colors.foregroundSecondary}
             value={name}
@@ -106,7 +106,7 @@ export default function NewContactScreen() {
               color: colors.foreground,
               borderColor: colors.border,
             }}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-xl border"
             placeholder="Como você chama essa pessoa"
             placeholderTextColor={colors.foregroundSecondary}
             value={nickname}
@@ -128,7 +128,7 @@ export default function NewContactScreen() {
               color: colors.foreground,
               borderColor: colors.border,
             }}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-xl border"
             placeholder="(00) 00000-0000"
             placeholderTextColor={colors.foregroundSecondary}
             value={phone}
@@ -151,7 +151,7 @@ export default function NewContactScreen() {
               color: colors.foreground,
               borderColor: colors.border,
             }}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-xl border"
             placeholder="email@exemplo.com"
             placeholderTextColor={colors.foregroundSecondary}
             value={email}
@@ -175,7 +175,7 @@ export default function NewContactScreen() {
               color: colors.foreground,
               borderColor: colors.border,
             }}
-            className="p-3 rounded-lg border"
+            className="p-3 rounded-xl border"
             placeholder="Anotações sobre a pessoa, gostos, etc."
             placeholderTextColor={colors.foregroundSecondary}
             value={notes}

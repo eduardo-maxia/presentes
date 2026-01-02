@@ -91,7 +91,7 @@ export default function ContactDetailScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ backgroundColor: colors.primary }}
-          className="mt-4 px-6 py-3 rounded-lg"
+          className="mt-4 px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-semibold">Voltar</Text>
         </TouchableOpacity>
@@ -108,7 +108,7 @@ export default function ContactDetailScreen() {
       >
         <View
           style={{ backgroundColor: colors.primary }}
-          className="w-20 h-20 rounded-full items-center justify-center mb-3"
+          className="w-20 h-20 rounded-3xl items-center justify-center mb-3"
         >
           <Text className="text-white text-3xl font-bold">
             {contact.name.charAt(0).toUpperCase()}
@@ -136,7 +136,7 @@ export default function ContactDetailScreen() {
             </Text>
             <View
               style={{ backgroundColor: colors.backgroundSecondary }}
-              className="p-4 rounded-lg"
+              className="p-4 rounded-2xl"
             >
               <Text style={{ color: colors.foreground }}>{contact.notes}</Text>
             </View>
@@ -156,7 +156,7 @@ export default function ContactDetailScreen() {
               <View
                 key={event.id}
                 style={{ backgroundColor: colors.backgroundSecondary }}
-                className="p-4 rounded-lg mb-2"
+                className="p-4 rounded-2xl mb-2"
               >
                 <Text style={{ color: colors.foreground }} className="text-base font-semibold">
                   {event.title}
@@ -182,7 +182,7 @@ export default function ContactDetailScreen() {
               <TouchableOpacity
                 onPress={() => setShowNewIdeaForm(true)}
                 style={{ backgroundColor: colors.primary }}
-                className="px-3 py-1 rounded"
+                className="px-3 py-1 rounded-lg"
               >
                 <Text className="text-white text-sm font-semibold">+ Nova</Text>
               </TouchableOpacity>
@@ -196,7 +196,7 @@ export default function ContactDetailScreen() {
                 backgroundColor: colors.backgroundSecondary,
                 borderColor: colors.primary,
               }}
-              className="p-4 rounded-lg mb-2 border-2"
+              className="p-4 rounded-2xl mb-2 border-2"
             >
               <TextInput
                 style={{
@@ -214,7 +214,7 @@ export default function ContactDetailScreen() {
                 <TouchableOpacity
                   onPress={handleAddIdea}
                   style={{ backgroundColor: colors.primary }}
-                  className="flex-1 py-2 rounded items-center"
+                  className="flex-1 py-2 rounded-xl items-center"
                 >
                   <Text className="text-white font-semibold">Adicionar</Text>
                 </TouchableOpacity>
@@ -224,7 +224,7 @@ export default function ContactDetailScreen() {
                     setNewIdeaTitle('');
                   }}
                   style={{ backgroundColor: colors.border }}
-                  className="flex-1 py-2 rounded items-center"
+                  className="flex-1 py-2 rounded-xl items-center"
                 >
                   <Text style={{ color: colors.foreground }}>Cancelar</Text>
                 </TouchableOpacity>
@@ -245,7 +245,7 @@ export default function ContactDetailScreen() {
               <View
                 key={idea.id}
                 style={{ backgroundColor: colors.backgroundSecondary }}
-                className="p-4 rounded-lg mb-2"
+                className="p-4 rounded-2xl mb-2"
               >
                 <View className="flex-row justify-between items-start mb-2">
                   <View className="flex-1">

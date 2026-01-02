@@ -37,9 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Auth state changed:", event);
         setSession(newSession);
 
-        if (event === "SIGNED_IN" && newSession) {
-          await loadProfile(newSession.user.id);
+        if (event === "SIGNED_IN" && newSession?.user) {
+          await handleSignIn(newSession.user.id);
         } else if (event === "SIGNED_OUT") {
+          setProfile(null);
           await createAnonymousSession();
         }
       }
@@ -54,12 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       const {
-        data: { session },
+        data: { session: currentSession },
       } = await supabase.auth.getSession();
 
-      if (session) {
-        setSession(session);
-        await loadProfile(session.user.id);
+      if (currentSession?.user) {
+        setSession(currentSession);
+        await handleSignIn(currentSession.user.id);
       } else {
         await createAnonymousSession();
       }
@@ -71,92 +72,94 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleSignIn = async (userId: string) => {
+    try {
+      // Try to get existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (existingProfile) {
+        // Update existing profile to mark as non-anonymous
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from("profiles")
+          .update({ is_anonymous: false })
+          .eq("user_id", userId)
+          .select()
+          .single();
+
+        setProfile(updatedProfile || existingProfile);
+      } else {
+        // Create new authenticated profile
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: userId,
+            is_anonymous: false,
+            display_name: "Usuário",
+          } as any)
+          .select()
+          .single();
+
+        if (newProfile) {
+          setProfile(newProfile);
+        } else {
+          console.error("Error creating profile:", createError);
+        }
+      }
+    } catch (error) {
+      console.error("Error handling sign in:", error);
+    }
+  };
+
   const createAnonymousSession = async () => {
     try {
       const { data: authData, error: authError } =
         await supabase.auth.signInAnonymously();
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("Error creating anonymous session:", authError);
+        return;
+      }
 
-      if (authData.session && authData.user) {
-        setSession(authData.session);
+      if (!authData.session || !authData.user) {
+        console.error("No session or user returned from anonymous sign in");
+        return;
+      }
 
-        // Check if profile exists
-        const { data: existingProfile } = await supabase
+      setSession(authData.session);
+
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (existingProfile) {
+        setProfile(existingProfile);
+      } else {
+        // Create new anonymous profile
+        const { data: newProfile, error: createError } = await supabase
           .from("profiles")
-          .select("*")
-          .eq("user_id", authData.user.id)
+          .insert({
+            user_id: authData.user.id,
+            is_anonymous: true,
+            display_name: "Usuário Anônimo",
+          } as any)
+          .select()
           .single();
 
-        if (existingProfile) {
-          setProfile(existingProfile);
+        if (newProfile) {
+          setProfile(newProfile);
         } else {
-          // Create profile
-          const { data: newProfile } = await supabase
-            .from("profiles")
-            .insert({
-              user_id: authData.user.id,
-              is_anonymous: true,
-              display_name: "Usuário Anônimo",
-            } as any)
-            .select()
-            .single();
-
-          if (newProfile) {
-            setProfile(newProfile);
-          }
+          console.error("Error creating anonymous profile:", createError);
         }
       }
     } catch (error) {
-      console.error("Error creating anonymous session:", error);
-    }
-  };
-
-  const loadProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (error || !data) {
-      await createAuthenticatedProfile(userId);
-    } else {
-      setProfile(data);
-    }
-  };
-
-  const createAuthenticatedProfile = async (userId: string) => {
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (existingProfile) {
-      const { data: updatedProfile } = await supabase
-        .from("profiles")
-        .update({ is_anonymous: false })
-        .eq("user_id", userId)
-        .select()
-        .single();
-
-      if (updatedProfile) {
-        setProfile(updatedProfile);
-      }
-    } else {
-      const { data } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: userId,
-          is_anonymous: false,
-        } as any)
-        .select()
-        .single();
-
-      if (data) {
-        setProfile(data);
-      }
+      console.error("Error in createAnonymousSession:", error);
     }
   };
 
@@ -203,6 +206,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      setProfile(null);
+      setSession(null);
       await createAnonymousSession();
     } catch (error) {
       console.error("Error signing out:", error);
