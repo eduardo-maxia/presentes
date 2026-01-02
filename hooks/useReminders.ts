@@ -1,33 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Reminder } from '@/types/database';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { NotificationService } from '@/services/notifications';
 
 export function useReminders() {
   const { profile } = useAuth();
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [hasPermission, setHasPermission] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      loadReminders();
-      checkNotificationPermission();
-    }
-  }, [profile]);
+    checkNotificationPermission();
+  }, []);
 
   const checkNotificationPermission = async () => {
     const hasPerms = await NotificationService.requestPermissions();
     setHasPermission(hasPerms);
   };
 
-  const loadReminders = async () => {
-    if (!profile) return;
+  // Query reminders
+  const { data: reminders = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['reminders', profile?.id],
+    queryFn: async () => {
+      if (!profile) return [];
 
-    try {
-      setLoading(true);
-      
       const { data, error } = await supabase
         .from('reminders')
         .select('*')
@@ -35,23 +32,16 @@ export function useReminders() {
         .order('remind_at');
 
       if (error) throw error;
+      return data as Reminder[];
+    },
+    enabled: !!profile,
+  });
 
-      setReminders(data || []);
-    } catch (error) {
-      console.error('Error loading reminders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutations
+  const addReminderMutation = useMutation({
+    mutationFn: async ({ reminderData, contactName }: { reminderData: Omit<Reminder, 'id' | 'profile_id' | 'created_at' | 'updated_at' | 'is_sent' | 'notification_id'>; contactName?: string }) => {
+      if (!profile) throw new Error('No profile');
 
-  const addReminder = useCallback(async (
-    reminderData: Omit<Reminder, 'id' | 'profile_id' | 'created_at' | 'updated_at' | 'is_sent' | 'notification_id'>,
-    contactName?: string
-  ) => {
-    if (!profile) return { success: false };
-
-    try {
-      // Schedule notification first
       const notificationId = await NotificationService.scheduleCustomReminder(
         { ...reminderData, profile_id: profile.id, notification_id: null },
         contactName
@@ -68,37 +58,32 @@ export function useReminders() {
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    },
+  });
 
-      await loadReminders();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error adding reminder:', error);
-      return { success: false, error };
-    }
-  }, [profile]);
-
-  const updateReminder = useCallback(async (reminderId: string, updates: Partial<Reminder>) => {
-    try {
+  const updateReminderMutation = useMutation({
+    mutationFn: async ({ reminderId, updates }: { reminderId: string; updates: Partial<Reminder> }) => {
       const reminder = reminders.find(r => r.id === reminderId);
       
-      // Cancel old notification if exists
       if (reminder?.notification_id) {
         await NotificationService.cancelNotification(reminder.notification_id);
       }
 
-      // Schedule new notification if date changed
       let notificationId = reminder?.notification_id;
-      if (updates.remind_at) {
+      if (updates.remind_at && profile) {
         notificationId = await NotificationService.scheduleCustomReminder({
           ...reminder,
           ...updates,
-          profile_id: profile!.id,
+          profile_id: profile.id,
         } as any);
       }
 
       const { data, error } = await supabase
         .from('reminders')
-        // @ts-ignore - Supabase type inference limitation
         .update({
           ...updates,
           notification_id: notificationId,
@@ -108,20 +93,17 @@ export function useReminders() {
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    },
+  });
 
-      await loadReminders();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating reminder:', error);
-      return { success: false, error };
-    }
-  }, [reminders, profile]);
-
-  const deleteReminder = useCallback(async (reminderId: string) => {
-    try {
+  const deleteReminderMutation = useMutation({
+    mutationFn: async (reminderId: string) => {
       const reminder = reminders.find(r => r.id === reminderId);
       
-      // Cancel notification
       if (reminder?.notification_id) {
         await NotificationService.cancelNotification(reminder.notification_id);
       }
@@ -132,14 +114,11 @@ export function useReminders() {
         .eq('id', reminderId);
 
       if (error) throw error;
-
-      await loadReminders();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting reminder:', error);
-      return { success: false, error };
-    }
-  }, [reminders]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    },
+  });
 
   const requestNotificationPermission = useCallback(async () => {
     const granted = await NotificationService.requestPermissions();
@@ -162,11 +141,32 @@ export function useReminders() {
     reminders,
     loading,
     hasPermission,
-    addReminder,
-    updateReminder,
-    deleteReminder,
+    addReminder: async (data: any, contactName?: string) => {
+      try {
+        await addReminderMutation.mutateAsync({ reminderData: data, contactName });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    updateReminder: async (reminderId: string, updates: Partial<Reminder>) => {
+      try {
+        await updateReminderMutation.mutateAsync({ reminderId, updates });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    deleteReminder: async (reminderId: string) => {
+      try {
+        await deleteReminderMutation.mutateAsync(reminderId);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
     requestNotificationPermission,
     getUpcomingReminders,
-    refresh: loadReminders,
+    refresh: refetch,
   };
 }

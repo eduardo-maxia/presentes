@@ -1,55 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Contact, ContactEvent, ContactWithEvents } from '@/types/database';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/context/AuthContext';
 import * as Contacts from 'expo-contacts';
 
 export function useContacts() {
   const { profile } = useAuth();
-  const [contacts, setContacts] = useState<ContactWithEvents[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [hasContactsPermission, setHasContactsPermission] = useState(false);
-
-  useEffect(() => {
-    if (profile) {
-      loadContacts();
-    }
-  }, [profile]);
-
-  const loadContacts = async () => {
-    if (!profile) return;
-
-    try {
-      setLoading(true);
-      
-      // Load contacts with their events
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select(`
-          *,
-          events:contact_events(*)
-        `)
-        .eq('profile_id', profile.id)
-        .order('name');
-
-      if (contactsError) throw contactsError;
-
-      // Process contacts to add upcoming event info
-      const processedContacts = (contactsData || []).map((contact: any) => {
-        const upcomingEvent = getUpcomingEvent(contact.events || []);
-        return {
-          ...contact,
-          upcomingEvent,
-        };
-      });
-
-      setContacts(processedContacts);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getUpcomingEvent = (events: ContactEvent[]): ContactEvent | undefined => {
     const today = new Date();
@@ -61,7 +20,6 @@ export function useContacts() {
         const currentYear = today.getFullYear();
         eventDate.setFullYear(currentYear);
 
-        // If event has passed this year, check next year
         if (eventDate < today) {
           eventDate.setFullYear(currentYear + 1);
         }
@@ -71,10 +29,36 @@ export function useContacts() {
       .sort((a, b) => a.daysUntil - b.daysUntil)[0]?.event;
   };
 
-  const addContact = useCallback(async (contactData: Omit<Contact, 'id' | 'profile_id' | 'created_at' | 'updated_at'>) => {
-    if (!profile) return { success: false };
+  // Query contacts
+  const { data: contacts = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['contacts', profile?.id],
+    queryFn: async () => {
+      if (!profile) return [];
 
-    try {
+      const { data: contactsData, error } = await supabase
+        .from('contacts')
+        .select(`
+          *,
+          events:contact_events(*)
+        `)
+        .eq('profile_id', profile.id)
+        .order('name');
+
+      if (error) throw error;
+
+      return (contactsData || []).map((contact: any) => ({
+        ...contact,
+        upcomingEvent: getUpcomingEvent(contact.events || []),
+      })) as ContactWithEvents[];
+    },
+    enabled: !!profile,
+  });
+
+  // Mutations
+  const addContactMutation = useMutation({
+    mutationFn: async (contactData: Omit<Contact, 'id' | 'profile_id' | 'created_at' | 'updated_at'>) => {
+      if (!profile) throw new Error('No profile');
+
       const { data, error } = await supabase
         .from('contacts')
         .insert({
@@ -85,52 +69,98 @@ export function useContacts() {
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
 
-      await loadContacts();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error adding contact:', error);
-      return { success: false, error };
-    }
-  }, [profile]);
-
-  const updateContact = useCallback(async (contactId: string, updates: Partial<Contact>) => {
-    try {
+  const updateContactMutation = useMutation({
+    mutationFn: async ({ contactId, updates }: { contactId: string; updates: Partial<Contact> }) => {
       const { data, error } = await supabase
         .from('contacts')
-        // @ts-ignore - Supabase type inference limitation
         .update(updates as any)
         .eq('id', contactId)
         .select()
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
 
-      await loadContacts();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating contact:', error);
-      return { success: false, error };
-    }
-  }, []);
-
-  const deleteContact = useCallback(async (contactId: string) => {
-    try {
+  const deleteContactMutation = useMutation({
+    mutationFn: async (contactId: string) => {
       const { error } = await supabase
         .from('contacts')
         .delete()
         .eq('id', contactId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
 
-      await loadContacts();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting contact:', error);
-      return { success: false, error };
-    }
-  }, []);
+  const addEventMutation = useMutation({
+    mutationFn: async ({ contactId, eventData }: { contactId: string; eventData: Omit<ContactEvent, 'id' | 'contact_id' | 'profile_id' | 'created_at' | 'updated_at'> }) => {
+      if (!profile) throw new Error('No profile');
 
+      const { data, error } = await supabase
+        .from('contact_events')
+        .insert({
+          ...eventData,
+          contact_id: contactId,
+          profile_id: profile.id,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<ContactEvent> }) => {
+      const { data, error } = await supabase
+        .from('contact_events')
+        .update(updates as any)
+        .eq('id', eventId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from('contact_events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+
+  // Helper functions
   const requestContactsPermission = useCallback(async () => {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
@@ -163,79 +193,60 @@ export function useContacts() {
     }
   }, [profile, hasContactsPermission]);
 
-  const addEvent = useCallback(async (contactId: string, eventData: Omit<ContactEvent, 'id' | 'contact_id' | 'profile_id' | 'created_at' | 'updated_at'>) => {
-    if (!profile) return { success: false };
-
-    try {
-      const { data, error } = await supabase
-        .from('contact_events')
-        .insert({
-          ...eventData,
-          contact_id: contactId,
-          profile_id: profile.id,
-        } as any)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      await loadContacts();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error adding event:', error);
-      return { success: false, error };
-    }
-  }, [profile]);
-
-  const updateEvent = useCallback(async (eventId: string, updates: Partial<ContactEvent>) => {
-    try {
-      const { data, error } = await supabase
-        .from('contact_events')
-        // @ts-ignore - Supabase type inference limitation
-        .update(updates as any)
-        .eq('id', eventId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      await loadContacts();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating event:', error);
-      return { success: false, error };
-    }
-  }, []);
-
-  const deleteEvent = useCallback(async (eventId: string) => {
-    try {
-      const { error } = await supabase
-        .from('contact_events')
-        .delete()
-        .eq('id', eventId);
-
-      if (error) throw error;
-
-      await loadContacts();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      return { success: false, error };
-    }
-  }, []);
-
   return {
     contacts,
     loading,
     hasContactsPermission,
-    addContact,
-    updateContact,
-    deleteContact,
+    addContact: async (data: any) => {
+      try {
+        await addContactMutation.mutateAsync(data);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    updateContact: async (contactId: string, updates: Partial<Contact>) => {
+      try {
+        await updateContactMutation.mutateAsync({ contactId, updates });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    deleteContact: async (contactId: string) => {
+      try {
+        await deleteContactMutation.mutateAsync(contactId);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    addEvent: async (contactId: string, eventData: any) => {
+      try {
+        await addEventMutation.mutateAsync({ contactId, eventData });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    updateEvent: async (eventId: string, updates: Partial<ContactEvent>) => {
+      try {
+        await updateEventMutation.mutateAsync({ eventId, updates });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    deleteEvent: async (eventId: string) => {
+      try {
+        await deleteEventMutation.mutateAsync(eventId);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
     requestContactsPermission,
     importFromSystemContacts,
-    addEvent,
-    updateEvent,
-    deleteEvent,
-    refresh: loadContacts,
+    refresh: refetch,
   };
 }

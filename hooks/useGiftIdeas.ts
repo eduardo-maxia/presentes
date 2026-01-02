@@ -1,27 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { GiftIdea, GiftAsset, GiftIdeaWithAssets } from '@/types/database';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 
 export function useGiftIdeas(contactId?: string) {
   const { profile } = useAuth();
-  const [giftIdeas, setGiftIdeas] = useState<GiftIdeaWithAssets[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (profile && contactId) {
-      loadGiftIdeas();
-    }
-  }, [profile, contactId]);
+  // Query gift ideas
+  const { data: giftIdeas = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['giftIdeas', contactId],
+    queryFn: async () => {
+      if (!profile || !contactId) return [];
 
-  const loadGiftIdeas = async () => {
-    if (!profile || !contactId) return;
-
-    try {
-      setLoading(true);
-      
-      const { data: ideasData, error } = await supabase
+      const { data, error } = await supabase
         .from('gift_ideas')
         .select(`
           *,
@@ -31,21 +25,16 @@ export function useGiftIdeas(contactId?: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      return data as GiftIdeaWithAssets[];
+    },
+    enabled: !!profile && !!contactId,
+  });
 
-      setGiftIdeas(ideasData || []);
-    } catch (error) {
-      console.error('Error loading gift ideas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutations
+  const addGiftIdeaMutation = useMutation({
+    mutationFn: async (ideaData: Omit<GiftIdea, 'id' | 'profile_id' | 'contact_id' | 'created_at' | 'updated_at'>) => {
+      if (!profile || !contactId) throw new Error('No profile or contact');
 
-  const addGiftIdea = useCallback(async (
-    ideaData: Omit<GiftIdea, 'id' | 'profile_id' | 'contact_id' | 'created_at' | 'updated_at'>
-  ) => {
-    if (!profile || !contactId) return { success: false };
-
-    try {
       const { data, error } = await supabase
         .from('gift_ideas')
         .insert({
@@ -57,37 +46,32 @@ export function useGiftIdeas(contactId?: string) {
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['giftIdeas'] });
+    },
+  });
 
-      await loadGiftIdeas();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error adding gift idea:', error);
-      return { success: false, error };
-    }
-  }, [profile, contactId]);
-
-  const updateGiftIdea = useCallback(async (ideaId: string, updates: Partial<GiftIdea>) => {
-    try {
+  const updateGiftIdeaMutation = useMutation({
+    mutationFn: async ({ ideaId, updates }: { ideaId: string; updates: Partial<GiftIdea> }) => {
       const { data, error } = await supabase
         .from('gift_ideas')
-        // @ts-ignore - Supabase type inference limitation
         .update(updates as any)
         .eq('id', ideaId)
         .select()
         .single();
 
       if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['giftIdeas'] });
+    },
+  });
 
-      await loadGiftIdeas();
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error updating gift idea:', error);
-      return { success: false, error };
-    }
-  }, []);
-
-  const deleteGiftIdea = useCallback(async (ideaId: string) => {
-    try {
+  const deleteGiftIdeaMutation = useMutation({
+    mutationFn: async (ideaId: string) => {
       // Delete associated assets from storage
       const idea = giftIdeas.find(i => i.id === ideaId);
       if (idea?.assets) {
@@ -105,27 +89,22 @@ export function useGiftIdeas(contactId?: string) {
         .eq('id', ideaId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['giftIdeas'] });
+    },
+  });
 
-      await loadGiftIdeas();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting gift idea:', error);
-      return { success: false, error };
-    }
-  }, [giftIdeas]);
+  const uploadImageMutation = useMutation({
+    mutationFn: async ({ ideaId, imageUri }: { ideaId: string; imageUri: string }) => {
+      if (!profile) throw new Error('No profile');
 
-  const uploadImage = useCallback(async (ideaId: string, imageUri: string) => {
-    if (!profile) return { success: false };
-
-    try {
-      // Get image from URI
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
       const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${profile.id}/${ideaId}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('gift-images')
         .upload(fileName, blob, {
@@ -135,12 +114,10 @@ export function useGiftIdeas(contactId?: string) {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('gift-images')
         .getPublicUrl(fileName);
 
-      // Save asset record
       const { data: assetData, error: assetError } = await supabase
         .from('gift_assets')
         .insert({
@@ -153,39 +130,33 @@ export function useGiftIdeas(contactId?: string) {
         .single();
 
       if (assetError) throw assetError;
+      return assetData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['giftIdeas'] });
+    },
+  });
 
-      await loadGiftIdeas();
-      return { success: true, data: assetData };
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      return { success: false, error };
-    }
-  }, [profile]);
-
-  const deleteAsset = useCallback(async (assetId: string, assetUrl: string) => {
-    try {
-      // Delete from storage
+  const deleteAssetMutation = useMutation({
+    mutationFn: async ({ assetId, assetUrl }: { assetId: string; assetUrl: string }) => {
       const path = assetUrl.split('/').pop();
       if (path) {
         await supabase.storage.from('gift-images').remove([path]);
       }
 
-      // Delete record
       const { error } = await supabase
         .from('gift_assets')
         .delete()
         .eq('id', assetId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['giftIdeas'] });
+    },
+  });
 
-      await loadGiftIdeas();
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting asset:', error);
-      return { success: false, error };
-    }
-  }, []);
-
+  // Helper functions
   const pickImage = useCallback(async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -240,13 +211,48 @@ export function useGiftIdeas(contactId?: string) {
   return {
     giftIdeas,
     loading,
-    addGiftIdea,
-    updateGiftIdea,
-    deleteGiftIdea,
-    uploadImage,
-    deleteAsset,
+    addGiftIdea: async (data: any) => {
+      try {
+        await addGiftIdeaMutation.mutateAsync(data);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    updateGiftIdea: async (ideaId: string, updates: Partial<GiftIdea>) => {
+      try {
+        await updateGiftIdeaMutation.mutateAsync({ ideaId, updates });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    deleteGiftIdea: async (ideaId: string) => {
+      try {
+        await deleteGiftIdeaMutation.mutateAsync(ideaId);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    uploadImage: async (ideaId: string, imageUri: string) => {
+      try {
+        await uploadImageMutation.mutateAsync({ ideaId, imageUri });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    deleteAsset: async (assetId: string, assetUrl: string) => {
+      try {
+        await deleteAssetMutation.mutateAsync({ assetId, assetUrl });
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
     pickImage,
     takePhoto,
-    refresh: loadGiftIdeas,
+    refresh: refetch,
   };
 }

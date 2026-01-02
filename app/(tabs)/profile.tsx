@@ -1,12 +1,15 @@
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, Modal, TextInput } from 'react-native';
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useReminders } from '@/hooks/useReminders';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const { profile, isAnonymous, signOut } = useAuth();
+  const { profile, isAnonymous, signOut, signInWithGoogle } = useAuth();
   const { colors, themeMode, setTheme, isDark } = useTheme();
   const { hasPermission, requestNotificationPermission } = useReminders();
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -26,6 +29,16 @@ export default function ProfileScreen() {
         'Permissão negada',
         'Para receber lembretes de aniversários e eventos, habilite as notificações nas configurações do app.'
       );
+    }
+  };
+
+  const handleLogin = async () => {
+    const result = await signInWithGoogle();
+    if (result.success) {
+      setShowLoginModal(false);
+      Alert.alert('Sucesso', 'Login realizado com sucesso!');
+    } else {
+      Alert.alert('Erro', 'Não foi possível fazer login. Tente novamente.');
     }
   };
 
@@ -62,9 +75,12 @@ export default function ProfileScreen() {
       {/* Anonymous User Section */}
       {isAnonymous && (
         <View className="p-4 m-4 rounded-lg" style={{ backgroundColor: colors.backgroundSecondary }}>
-          <Text style={{ color: colors.foreground }} className="text-lg font-semibold mb-2">
-            🔒 Proteja seus dados
-          </Text>
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="lock-closed" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
+            <Text style={{ color: colors.foreground }} className="text-lg font-semibold">
+              Proteja seus dados
+            </Text>
+          </View>
           <Text style={{ color: colors.foregroundSecondary }} className="mb-3">
             Faça login para sincronizar seus dados e acessá-los de qualquer dispositivo.
           </Text>
@@ -72,6 +88,7 @@ export default function ProfileScreen() {
             style={{ backgroundColor: colors.primary }}
             className="py-3 rounded-lg items-center"
             activeOpacity={0.8}
+            onPress={() => setShowLoginModal(true)}
           >
             <Text className="text-white font-semibold">Fazer Login</Text>
           </TouchableOpacity>
@@ -207,6 +224,47 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Login Modal */}
+      <Modal
+        visible={showLoginModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View 
+            className="rounded-t-3xl p-6"
+            style={{ backgroundColor: colors.background }}
+          >
+            <Text style={{ color: colors.foreground }} className="text-2xl font-bold mb-2">
+              Fazer Login
+            </Text>
+            <Text style={{ color: colors.foregroundSecondary }} className="mb-6">
+              Entre com sua conta Google para sincronizar seus dados.
+            </Text>
+            
+            <TouchableOpacity
+              style={{ backgroundColor: colors.primary }}
+              className="py-4 rounded-lg items-center mb-3"
+              onPress={handleLogin}
+              activeOpacity={0.8}
+            >
+              <Text className="text-white font-semibold text-base">Continuar com Google</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              className="py-4 rounded-lg items-center"
+              onPress={() => setShowLoginModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: colors.foregroundSecondary }} className="font-medium">
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

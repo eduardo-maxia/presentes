@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useContacts } from '@/hooks/useContacts';
 import { useTheme } from '@/hooks/useTheme';
 import { ContactWithEvents } from '@/types/database';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ContactsScreen() {
   const router = useRouter();
