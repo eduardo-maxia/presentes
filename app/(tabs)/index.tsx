@@ -57,7 +57,7 @@ export default function ContactsScreen() {
         <View className="flex-row items-center">
           <View
             style={{ backgroundColor: colors.primary }}
-            className="w-12 h-12 rounded-full items-center justify-center mr-3"
+            className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
           >
             <Text className="text-white text-xl font-bold">
               {item.name.charAt(0).toUpperCase()}
@@ -116,7 +116,7 @@ export default function ContactsScreen() {
             color: colors.foreground,
             borderColor: colors.border,
           }}
-          className="p-3 rounded-lg border"
+          className="p-3 rounded-xl border"
           placeholder="Buscar contatos..."
           placeholderTextColor={colors.foregroundSecondary}
           value={searchQuery}
@@ -144,10 +144,10 @@ export default function ContactsScreen() {
       <TouchableOpacity
         onPress={() => router.push('/contact/new')}
         style={{ backgroundColor: colors.primary }}
-        className="absolute bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+        className="absolute bottom-6 right-6 w-16 h-16 rounded-2xl items-center justify-center shadow-lg"
         activeOpacity={0.8}
       >
-        <Text className="text-white text-3xl font-bold">+</Text>
+        <Ionicons name="add" size={32} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );

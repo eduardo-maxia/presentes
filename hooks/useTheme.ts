@@ -49,30 +49,30 @@ export function useTheme() {
 
   const isDark = colorScheme === 'dark';
 
-  // Theme colors
+  // Theme colors - Improved dark mode with warmer tones and better contrast
   const colors = {
-    background: isDark ? '#1C1C1E' : '#FFFFFF',
-    backgroundSecondary: isDark ? '#2C2C2E' : '#F5F5F5',
-    foreground: isDark ? '#FFFFFF' : '#1A1A1A',
-    foregroundSecondary: isDark ? '#AEAEB2' : '#666666',
-    border: isDark ? '#38383A' : '#E5E5E5',
+    background: isDark ? '#0F1419' : '#FFFFFF',
+    backgroundSecondary: isDark ? '#1A1F29' : '#F7F9FC',
+    foreground: isDark ? '#E6EDF3' : '#0F1419',
+    foregroundSecondary: isDark ? '#8B949E' : '#57606A',
+    border: isDark ? '#30363D' : '#D0D7DE',
     
-    // Emotional colors (same in both themes)
-    primary: '#FF6B6B',
-    secondary: '#4ECDC4',
-    accent: '#FFE66D',
-    success: '#95E1D3',
+    // Emotional colors - adjusted for better dark mode visibility
+    primary: isDark ? '#FF7B7B' : '#FF6B6B',
+    secondary: isDark ? '#5EDDD4' : '#4ECDC4',
+    accent: isDark ? '#FFF07D' : '#FFE66D',
+    success: isDark ? '#A5F1E3' : '#95E1D3',
     
-    // Category colors
-    practical: '#6C9BCF',
-    emotional: '#FF6B6B',
-    fun: '#FFE66D',
-    experience: '#B28DFF',
+    // Category colors - enhanced for dark mode
+    practical: isDark ? '#7CABDF' : '#6C9BCF',
+    emotional: isDark ? '#FF7B7B' : '#FF6B6B',
+    fun: isDark ? '#FFF07D' : '#FFE66D',
+    experience: isDark ? '#C29DFF' : '#B28DFF',
     
-    // Status colors
-    idea: '#6C9BCF',
-    bought: '#FFE66D',
-    delivered: '#95E1D3',
+    // Status colors - enhanced for dark mode
+    idea: isDark ? '#7CABDF' : '#6C9BCF',
+    bought: isDark ? '#FFF07D' : '#FFE66D',
+    delivered: isDark ? '#A5F1E3' : '#95E1D3',
   };
 
   return {
