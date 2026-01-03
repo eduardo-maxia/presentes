@@ -1,23 +1,113 @@
 import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useContacts } from '@/hooks/useContacts';
-import { useTheme } from '@/hooks/useTheme';
+import { useLocalContacts } from '@/hooks/useLocalContacts';
+import { useTheme } from '@/context/ThemeContext';
 import { ContactWithEvents } from '@/types/database';
 import { Ionicons } from '@expo/vector-icons';
+import { ContactsPermissionCard } from '@/components/ContactsPermissionCard';
+
+interface DisplayContact extends ContactWithEvents {
+  isLocal?: boolean; // true if it's from system and not yet saved in DB
+  localContactData?: {
+    name: string;
+    phone: string | null;
+    email: string | null;
+  };
+}
 
 export default function ContactsScreen() {
   const router = useRouter();
-  const { contacts, loading } = useContacts();
+  const { contacts: dbContacts, loading: dbLoading, addContact } = useContacts();
+  const { contacts: localContacts, hasPermission, requestPermission, loading: localLoading } = useLocalContacts();
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredContacts = contacts.filter(contact =>
+  // Merge contacts: DB contacts + local contacts not in DB (by phone number)
+  const mergedContacts = useMemo(() => {
+    const merged: DisplayContact[] = [...dbContacts];
+
+    if (hasPermission) {
+      // Create a set of phone numbers already in DB
+      const dbPhones = new Set(
+        dbContacts
+          .map(c => c.phone)
+          .filter(Boolean)
+          .map(p => p!.replace(/\D/g, '')) // Remove non-digits for comparison
+      );
+
+      // Add local contacts that don't have matching phone in DB
+      localContacts.forEach(local => {
+        if (local.phone) {
+          const normalizedPhone = local.phone.replace(/\D/g, '');
+          if (!dbPhones.has(normalizedPhone)) {
+            merged.push({
+              id: local.id,
+              name: local.name,
+              nickname: null,
+              notes: null,
+              phone: local.phone,
+              email: local.email,
+              source: 'system',
+              system_contact_id: local.id,
+              profile_id: '',
+              avatar_url: null,
+              created_at: '',
+              updated_at: '',
+              upcomingEvent: undefined,
+              isLocal: true,
+              localContactData: {
+                name: local.name,
+                phone: local.phone,
+                email: local.email,
+              },
+            } as DisplayContact);
+          }
+        } else {
+          // Contact without phone - add only if name doesn't match
+          const nameExists = dbContacts.some(
+            db => db.name.toLowerCase() === local.name.toLowerCase()
+          );
+          
+          if (!nameExists) {
+            merged.push({
+              id: local.id,
+              name: local.name,
+              nickname: null,
+              notes: null,
+              phone: null,
+              email: local.email,
+              source: 'system',
+              system_contact_id: local.id,
+              profile_id: '',
+              avatar_url: null,
+              created_at: '',
+              updated_at: '',
+              upcomingEvent: undefined,
+              isLocal: true,
+              localContactData: {
+                name: local.name,
+                phone: null,
+                email: local.email,
+              },
+            } as DisplayContact);
+          }
+        }
+      });
+    }
+
+    return merged.sort((a, b) => a.name.localeCompare(b.name));
+  }, [dbContacts, localContacts, hasPermission]);
+
+  const loading = dbLoading || localLoading;
+
+  const filteredContacts = mergedContacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     contact.nickname?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getContextInfo = (contact: ContactWithEvents): string => {
+  const getContextInfo = (contact: DisplayContact): string => {
     if (!contact.upcomingEvent) return '';
     
     const eventDate = new Date(contact.upcomingEvent.event_date);
@@ -44,12 +134,36 @@ export default function ContactsScreen() {
     return '';
   };
 
-  const renderContact = ({ item }: { item: ContactWithEvents }) => {
+  const renderContact = ({ item }: { item: DisplayContact }) => {
     const contextInfo = getContextInfo(item);
+    
+    const handlePress = async () => {
+      // If it's a local contact, save it to DB first
+      if (item.isLocal && item.localContactData) {
+        const result = await addContact({
+          name: item.localContactData.name,
+          nickname: null,
+          notes: null,
+          phone: item.localContactData.phone,
+          email: item.localContactData.email,
+          source: 'system',
+          system_contact_id: item.id,
+          avatar_url: null,
+        });
+
+        if (result.success) {
+          // Navigate to the newly created contact
+          router.push(`/contact/${(result as any).data.id}`);
+        }
+      } else {
+        // Already in DB, just navigate
+        router.push(`/contact/${item.id}`);
+      }
+    };
     
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/contact/${item.id}`)}
+        onPress={handlePress}
         style={{ backgroundColor: colors.background }}
         className="p-4 border-b"
         activeOpacity={0.7}
@@ -129,6 +243,11 @@ export default function ContactsScreen() {
         data={filteredContacts}
         renderItem={renderContact}
         keyExtractor={item => item.id}
+        ListHeaderComponent={
+          hasPermission === false && !searchQuery ? (
+            <ContactsPermissionCard onRequestPermission={requestPermission} />
+          ) : null
+        }
         ListEmptyComponent={
           <View className="items-center justify-center p-8">
             <Text style={{ color: colors.foregroundSecondary }} className="text-lg text-center">

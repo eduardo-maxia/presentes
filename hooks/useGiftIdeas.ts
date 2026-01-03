@@ -213,8 +213,8 @@ export function useGiftIdeas(contactId?: string) {
     loading,
     addGiftIdea: async (data: any) => {
       try {
-        await addGiftIdeaMutation.mutateAsync(data);
-        return { success: true };
+        const result = await addGiftIdeaMutation.mutateAsync(data);
+        return { success: true, data: result };
       } catch (error) {
         return { success: false, error };
       }

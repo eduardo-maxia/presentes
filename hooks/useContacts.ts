@@ -1,14 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Contact, ContactEvent, ContactWithEvents } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
-import * as Contacts from 'expo-contacts';
 
 export function useContacts() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const [hasContactsPermission, setHasContactsPermission] = useState(false);
 
   const getUpcomingEvent = (events: ContactEvent[]): ContactEvent | undefined => {
     const today = new Date();
@@ -29,7 +27,7 @@ export function useContacts() {
       .sort((a, b) => a.daysUntil - b.daysUntil)[0]?.event;
   };
 
-  // Query contacts
+  // Query contacts from DB only
   const { data: contacts = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['contacts', profile?.id],
     queryFn: async () => {
@@ -80,7 +78,8 @@ export function useContacts() {
     mutationFn: async ({ contactId, updates }: { contactId: string; updates: Partial<Contact> }) => {
       const { data, error } = await supabase
         .from('contacts')
-        .update(updates as any)
+        // @ts-ignore - Supabase type inference issue
+        .update(updates)
         .eq('id', contactId)
         .select()
         .single();
@@ -133,7 +132,8 @@ export function useContacts() {
     mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<ContactEvent> }) => {
       const { data, error } = await supabase
         .from('contact_events')
-        .update(updates as any)
+        // @ts-ignore - Supabase type inference issue
+        .update(updates)
         .eq('id', eventId)
         .select()
         .single();
@@ -160,47 +160,13 @@ export function useContacts() {
     },
   });
 
-  // Helper functions
-  const requestContactsPermission = useCallback(async () => {
-    try {
-      const { status } = await Contacts.requestPermissionsAsync();
-      setHasContactsPermission(status === 'granted');
-      return status === 'granted';
-    } catch (error) {
-      console.error('Error requesting contacts permission:', error);
-      return false;
-    }
-  }, []);
-
-  const importFromSystemContacts = useCallback(async () => {
-    if (!profile) return { success: false };
-
-    try {
-      const hasPermission = hasContactsPermission || await requestContactsPermission();
-      
-      if (!hasPermission) {
-        return { success: false, error: 'Permission denied' };
-      }
-
-      const { data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails],
-      });
-
-      return { success: true, contacts: data };
-    } catch (error) {
-      console.error('Error importing system contacts:', error);
-      return { success: false, error };
-    }
-  }, [profile, hasContactsPermission]);
-
   return {
     contacts,
     loading,
-    hasContactsPermission,
     addContact: async (data: any) => {
       try {
-        await addContactMutation.mutateAsync(data);
-        return { success: true };
+        const result = await addContactMutation.mutateAsync(data);
+        return { success: true, data: result };
       } catch (error) {
         return { success: false, error };
       }
@@ -245,8 +211,6 @@ export function useContacts() {
         return { success: false, error };
       }
     },
-    requestContactsPermission,
-    importFromSystemContacts,
     refresh: refetch,
   };
 }

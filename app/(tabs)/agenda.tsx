@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { useContacts } from '@/hooks/useContacts';
 import { useReminders } from '@/hooks/useReminders';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/context/ThemeContext';
 import { ContactEvent } from '@/types/database';
 
 export default function AgendaScreen() {

@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
-import { useTheme } from '@/hooks/useTheme';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from "expo-router";
+import { useTheme } from "@/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
@@ -21,24 +21,31 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="contact"
         options={{
-          title: 'Contatos',
-          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+          title: "Contatos",
+          // headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="agenda"
         options={{
-          title: 'Hoje',
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
+          title: "Hoje",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+          title: "Perfil",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

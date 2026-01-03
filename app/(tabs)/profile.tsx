@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, Modal, TextInput } from 'react-native';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/context/ThemeContext';
 import { useReminders } from '@/hooks/useReminders';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function ProfileScreen() {
   const { profile, isAnonymous, signOut, signInWithGoogle } = useAuth();
@@ -104,65 +105,39 @@ export default function ProfileScreen() {
           APARÊNCIA
         </Text>
 
-        {/* Light Theme */}
-        <TouchableOpacity
+        <View
           className="p-4 rounded-xl mb-2"
           style={{ backgroundColor: colors.backgroundSecondary }}
-          onPress={() => setTheme('light')}
-          activeOpacity={0.7}
         >
           <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center">
-              <Ionicons name="sunny" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.foreground }} className="text-base">
-                Tema Claro
+            <View className="flex-1">
+              <Text style={{ color: colors.foreground }} className="text-base font-medium mb-1">
+                {isDark ? 'Tema Escuro' : 'Tema Claro'}
+              </Text>
+              <Text style={{ color: colors.foregroundSecondary }} className="text-sm">
+                {themeMode === 'system' ? 'Segue o sistema automaticamente' : 'Personalizado'}
               </Text>
             </View>
-            {themeMode === 'light' && (
-              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-            )}
+            <ThemeToggle />
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* Dark Theme */}
-        <TouchableOpacity
-          className="p-4 rounded-xl mb-2"
-          style={{ backgroundColor: colors.backgroundSecondary }}
-          onPress={() => setTheme('dark')}
-          activeOpacity={0.7}
-        >
-          <View className="flex-row justify-between items-center">
+        {/* System Mode Option */}
+        {themeMode !== 'system' && (
+          <TouchableOpacity
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: colors.backgroundSecondary }}
+            onPress={() => setTheme('system')}
+            activeOpacity={0.7}
+          >
             <View className="flex-row items-center">
-              <Ionicons name="moon" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.foreground }} className="text-base">
-                Tema Escuro
+              <Ionicons name="phone-portrait" size={20} color={colors.foregroundSecondary} style={{ marginRight: 8 }} />
+              <Text style={{ color: colors.foregroundSecondary }} className="text-sm">
+                Usar tema do sistema
               </Text>
             </View>
-            {themeMode === 'dark' && (
-              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-            )}
-          </View>
-        </TouchableOpacity>
-
-        {/* System Theme */}
-        <TouchableOpacity
-          className="p-4 rounded-xl mb-2"
-          style={{ backgroundColor: colors.backgroundSecondary }}
-          onPress={() => setTheme('system')}
-          activeOpacity={0.7}
-        >
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center">
-              <Ionicons name="phone-portrait" size={20} color={colors.foreground} style={{ marginRight: 8 }} />
-              <Text style={{ color: colors.foreground }} className="text-base">
-                Automático (Sistema)
-              </Text>
-            </View>
-            {themeMode === 'system' && (
-              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-            )}
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Notifications Section */}
