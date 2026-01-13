@@ -1,11 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeMode } from '@/types/database';
 
 const THEME_STORAGE_KEY = 'theme_preference';
 
-export function useTheme() {
+interface ThemeContextType {
+  themeMode: ThemeMode;
+  setTheme: (mode: ThemeMode) => Promise<void>;
+  toggleTheme: () => Promise<void>;
+  colorScheme: 'light' | 'dark';
+  isDark: boolean;
+  colors: ThemeColors;
+  loading: boolean;
+}
+
+interface ThemeColors {
+  background: string;
+  backgroundSecondary: string;
+  foreground: string;
+  foregroundSecondary: string;
+  border: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+  success: string;
+  practical: string;
+  emotional: string;
+  fun: string;
+  experience: string;
+  idea: string;
+  bought: string;
+  delivered: string;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [loading, setLoading] = useState(true);
@@ -50,7 +81,7 @@ export function useTheme() {
   const isDark = colorScheme === 'dark';
 
   // Theme colors - Improved dark mode with warmer tones and better contrast
-  const colors = {
+  const colors: ThemeColors = {
     background: isDark ? '#0F1419' : '#FFFFFF',
     backgroundSecondary: isDark ? '#1A1F29' : '#F7F9FC',
     foreground: isDark ? '#E6EDF3' : '#0F1419',
@@ -75,7 +106,7 @@ export function useTheme() {
     delivered: isDark ? '#A5F1E3' : '#95E1D3',
   };
 
-  return {
+  const value: ThemeContextType = {
     themeMode,
     setTheme,
     toggleTheme,
@@ -84,4 +115,18 @@ export function useTheme() {
     colors,
     loading,
   };
+
+  return (
+    <ThemeContext.Provider value={value}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
 }

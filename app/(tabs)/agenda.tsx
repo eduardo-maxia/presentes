@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { useContacts } from '@/hooks/useContacts';
 import { useReminders } from '@/hooks/useReminders';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/context/ThemeContext';
 import { ContactEvent } from '@/types/database';
 
 export default function AgendaScreen() {
@@ -98,7 +98,7 @@ export default function AgendaScreen() {
               key={event.id}
               onPress={() => router.push(`/contact/${contact.id}`)}
               style={{ backgroundColor: colors.backgroundSecondary }}
-              className="p-4 rounded-lg mb-2"
+              className="p-4 rounded-2xl mb-2"
               activeOpacity={0.7}
             >
               <Text style={{ color: colors.primary }} className="text-lg font-semibold">
@@ -133,7 +133,7 @@ export default function AgendaScreen() {
                 backgroundColor: colors.backgroundSecondary,
                 borderLeftColor: daysUntil <= 7 ? colors.primary : colors.secondary,
               }}
-              className="p-4 rounded-lg mb-2 border-l-4"
+              className="p-4 rounded-2xl mb-2 border-l-4"
               activeOpacity={0.7}
             >
               <View className="flex-row justify-between items-start">
@@ -172,7 +172,7 @@ export default function AgendaScreen() {
             <View
               key={reminder.id}
               style={{ backgroundColor: colors.backgroundSecondary }}
-              className="p-4 rounded-lg mb-2"
+              className="p-4 rounded-2xl mb-2"
             >
               <Text style={{ color: colors.foreground }} className="text-base font-semibold">
                 {reminder.title}

@@ -55,7 +55,8 @@
           "photosPermission": "Permitir que $(PRODUCT_NAME) acesse suas fotos para adicionar imagens de presentes.",
           "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para tirar fotos de presentes."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "presentes",
     "experiments": {
